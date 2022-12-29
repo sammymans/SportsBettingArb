@@ -1,10 +1,10 @@
 import requests
-import json
 from collections import defaultdict
+from pydantic import BaseModel
 
-def jprint(obj):
-    text = json.dumps(obj, sort_keys=True, indent=4)
-    print(text)
+from typing import List
+from fastapi import FastAPI
+
 
 API_KEY = "cdd9980947c042d3e2623d1f826681c0"
 sport = "americanfootball_nfl" # can use upcoming
@@ -62,9 +62,44 @@ for opp in arb_ops:
         amt_for_higher_odds = amt_for_lowest_odds * (opp[2][1] / opp[4][1])
         result.append([opp[1], opp[2][0], amt_for_lowest_odds, opp[3], opp[4][0], amt_for_higher_odds])
     else:
-        amt_for_higher_odds = amt_for_higher_odds * (opp[4][1] / opp[2][1])
+        amt_for_higher_odds = amt_for_lowest_odds * (opp[4][1] / opp[2][1])
         result.append([opp[3], opp[4][0], amt_for_higher_odds, opp[1], opp[2][0], amt_for_lowest_odds])
 
-print("\n\n")
-print(result)
-print("\n\n")
+# print("\n\n")
+# print(result)
+# print("\n\n")
+
+
+# Creating a Class for each Opportunity that will be held in a list
+class Opportunity(BaseModel):
+    bookkeeper1: str
+    team1: str
+    amount1: int
+    bookkeeper2: str
+    team2: str
+    amount2: int
+
+oppList = []
+
+# Turning each opportunity in result[] into an object and putting into a new list
+for opp in result:
+    oppList.append(Opportunity(
+        bookkeeper1 = opp[0],
+        team1 = opp[1],
+        amount1 = opp[2],
+        bookkeeper2 = opp[3],
+        team2 = opp[4],
+        amount2 = opp[5]))
+
+
+#FAST API
+app = FastAPI()
+
+#Database of all the Opportunities
+DB: List[Opportunity] = oppList
+
+# Callling it, changed link to /api
+@app.get("/api")
+def read_root():
+    return DB
+
